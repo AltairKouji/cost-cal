@@ -46,7 +46,8 @@ cp .env.example .env.local   # 填入上一步的 URL 与 anon key
 npm run dev
 ```
 
-打开 http://localhost:5173 ，用上一步在 Supabase 里建好的邮箱密码登录。
+打开 http://localhost:5173/cost-cal/ ，用上一步在 Supabase 里建好的邮箱密码登录。
+（本地路径和线上保持一致，都带 `/cost-cal/` 前缀。）
 页面只有登录，没有注册入口——要加人就去 Supabase 控制台加。
 
 > anon key 本来就是给浏览器用的公开 key，真正的安全边界是数据库上的 RLS 策略
@@ -99,6 +100,7 @@ src/
   styles/
     industry.css       设计系统 token 与组件类
     app.css            应用外壳、深色主题、键盘等
+public/                图标与 PWA manifest（icon.svg 是源，PNG 由它导出）
 supabase/schema.sql    建表 + RLS + 新账号初始化
 .github/workflows/     push 到 main 自动发布 GitHub Pages
 ```

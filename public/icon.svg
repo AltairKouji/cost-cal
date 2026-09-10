@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="家计记账">
+  <rect width="512" height="512" fill="#1d2d3d"/>
+  <g>
+    <rect x="128" y="268" width="64" height="96"  fill="#597ea3"/>
+    <rect x="224" y="204" width="64" height="160" fill="#94bce3"/>
+    <rect x="320" y="140" width="64" height="224" fill="#d6ebff"/>
+  </g>
+  <rect x="112" y="376" width="288" height="10" fill="#6f93b8"/>
+</svg>
