@@ -154,8 +154,35 @@ function CategorySheet({ category, onClose, onSave, onDelete }: {
   const [color, setColor] = useState(category?.color ?? 'accent-600')
   const [busy, setBusy] = useState(false)
 
+  const actions = (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+        onClick={onClose}>取消</button>
+      {onDelete && (
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+          disabled={busy}
+          onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>删除</button>
+      )}
+      <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
+        disabled={busy || !(name.trim() || short.trim())}
+        onClick={async () => {
+          setBusy(true)
+          try {
+            await onSave({
+              name: name.trim() || short.trim(),
+              short: short.trim() || name.trim(),
+              glyph: glyph.trim() || '他',
+              kind,
+              budget: Number(budget || 0),
+              color,
+            })
+          } finally { setBusy(false) }
+        }}>保存</button>
+    </div>
+  )
+
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} footer={actions}>
       <div className="kicker">{category ? 'EDIT CATEGORY' : 'NEW CATEGORY'}</div>
 
       <PickerRow
@@ -207,30 +234,6 @@ function CategorySheet({ category, onClose, onSave, onDelete }: {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-          onClick={onClose}>取消</button>
-        {onDelete && (
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-            disabled={busy}
-            onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>删除</button>
-        )}
-        <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
-          disabled={busy || !(name.trim() || short.trim())}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              await onSave({
-                name: name.trim() || short.trim(),
-                short: short.trim() || name.trim(),
-                glyph: glyph.trim() || '他',
-                kind,
-                budget: Number(budget || 0),
-                color,
-              })
-            } finally { setBusy(false) }
-          }}>保存</button>
-      </div>
     </Sheet>
   )
 }

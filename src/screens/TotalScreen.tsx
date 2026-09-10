@@ -167,8 +167,34 @@ function AccountSheet({ account, onClose, onSave, onDelete }: {
   const [balance, setBalance] = useState(String(account?.balance ?? 0))
   const [busy, setBusy] = useState(false)
 
+  const actions = (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+        onClick={onClose}>取消</button>
+      {onDelete && (
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+          disabled={busy} onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>
+          删除
+        </button>
+      )}
+      <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
+        disabled={busy || !name.trim()}
+        onClick={async () => {
+          setBusy(true)
+          try {
+            await onSave({
+              name: name.trim(), sub: sub.trim(),
+              glyph: glyph.trim() || '現', balance: Number(balance || 0),
+            })
+          } finally { setBusy(false) }
+        }}>
+        保存
+      </button>
+    </div>
+  )
+
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} footer={actions}>
       <div className="kicker">{account ? 'EDIT ACCOUNT' : 'NEW ACCOUNT'}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 10, marginTop: 12 }}>
         <div className="field">
@@ -191,29 +217,6 @@ function AccountSheet({ account, onClose, onSave, onDelete }: {
         <label htmlFor="a-bal">余额</label>
         <input id="a-bal" className="input" type="number" inputMode="decimal" value={balance}
           onChange={(e) => setBalance(e.target.value)} />
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-          onClick={onClose}>取消</button>
-        {onDelete && (
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-            disabled={busy} onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>
-            删除
-          </button>
-        )}
-        <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
-          disabled={busy || !name.trim()}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              await onSave({
-                name: name.trim(), sub: sub.trim(),
-                glyph: glyph.trim() || '現', balance: Number(balance || 0),
-              })
-            } finally { setBusy(false) }
-          }}>
-          保存
-        </button>
       </div>
     </Sheet>
   )

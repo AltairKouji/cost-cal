@@ -69,11 +69,16 @@ export function Empty({ children }: { children: ReactNode }) {
 
 /** 底部弹出面板。
  *
- *  手机上 `position:fixed; inset:0` 铺的是布局视口，而浏览器底部工具栏和弹出的
- *  软键盘只会缩小*视觉*视口——面板底部那排按钮就被盖住了。这里跟着
- *  visualViewport 走，键盘一弹出面板立刻缩到剩余空间里；再配合内部滚动，
- *  内容再长也够得着。 */
-export function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+ *  手机上有两个坑，这里都按结构解决，不依赖视口单位算得准：
+ *  1. 按钮不放在滚动区里，而是钉在面板底部的 footer——不用滚到底就够得着；
+ *  2. 打开期间锁住背景滚动，避免手势落到后面的页面上、滚到底又弹回顶部。
+ *  同时跟随 visualViewport，软键盘弹出时面板缩进剩余空间。 */
+export function Sheet({ children, footer, onClose }: {
+  children: ReactNode
+  footer?: ReactNode
+  onClose: () => void
+}) {
+  // 面板高度跟着可见区域走（浏览器工具栏、软键盘都只改视觉视口）
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
@@ -93,6 +98,19 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose: () 
     }
   }, [])
 
+  // 锁住背景滚动
+  useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>('.app-scroll')
+    const prevBody = document.body.style.overflow
+    const prevScroller = scroller?.style.overflowY ?? ''
+    document.body.style.overflow = 'hidden'
+    if (scroller) scroller.style.overflowY = 'hidden'
+    return () => {
+      document.body.style.overflow = prevBody
+      if (scroller) scroller.style.overflowY = prevScroller
+    }
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -107,7 +125,8 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose: () 
         role="dialog"
         aria-modal="true"
       >
-        {children}
+        <div className="sheet-body">{children}</div>
+        {footer && <div className="sheet-footer">{footer}</div>}
       </div>
     </div>
   )
