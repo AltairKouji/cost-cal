@@ -9,6 +9,9 @@ Barlow Condensed 数字），数据存在你自己的 Supabase 项目里，登�
 - **总计** — 净结余与累计曲线、月均/日均/储蓄率/笔数、资产账户
 - **设置** — 货币、深浅主题、每月预算、分类管理、导出 CSV、退出登录
 
+只登录、不注册：账号在 Supabase 控制台手动创建，配合关掉项目的注册开关，
+陌生人拿到网址也进不来。
+
 > 设计稿里「提醒与备份」一节按需求暂未实现。
 
 ## 一、准备 Supabase
@@ -18,8 +21,11 @@ Barlow Condensed 数字），数据存在你自己的 Supabase 项目里，登�
    它会建好 `settings` / `categories` / `entries` / `accounts` 四张表，开启行级安全
    （每个账号只能读写自己的数据），并在注册时自动写入默认分类与账户。
 3. 打开 **Project Settings → API**，记下 `Project URL` 和 `anon public` key。
-4. 自用的话，建议去 **Authentication → Providers → Email** 里关掉
-   “Confirm email”，注册完即可直接登录，省去收邮件这一步。
+4. **关掉公开注册**（重要）：**Authentication → Sign In / Providers → Email**，
+   把 **Allow new users to sign up** 关掉。前端已经没有注册入口，但 anon key 本身是
+   公开的，不关这个开关，任何拿到网址的人都能直接调注册接口建号。
+5. 建自己的账号：**Authentication → Users → Add user**，填邮箱和密码，
+   勾上 *Auto Confirm User* 免去确认邮件。建号时数据库触发器会自动写好默认分类和账户。
 
 ## 二、本地运行
 
@@ -29,10 +35,11 @@ cp .env.example .env.local   # 填入上一步的 URL 与 anon key
 npm run dev
 ```
 
-打开 http://localhost:5173 ，第一次用点「注册」建账号即可。
+打开 http://localhost:5173 ，用上一步在 Supabase 里建好的邮箱密码登录。
+页面只有登录，没有注册入口——要加人就去 Supabase 控制台加。
 
-> anon key 本来就是给浏览器用的公开 key，真正的安全边界是数据库上的 RLS 策略，
-> 所以放进前端没有问题。**service_role key 永远不要写进这个项目。**
+> anon key 本来就是给浏览器用的公开 key，真正的安全边界是数据库上的 RLS 策略
+> 加上关掉的注册开关，所以放进前端没有问题。**service_role key 永远不要写进这个项目。**
 
 ## 三、部署
 

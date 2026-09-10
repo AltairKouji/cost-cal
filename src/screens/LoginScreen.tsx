@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
-import { Blueprint, PickerRow } from '../components/ui'
+import { Blueprint } from '../components/ui'
 
-type Mode = 'signin' | 'signup'
-
+/** 自用版：只登录，不开放注册。账号在 Supabase 控制台手动创建，
+ *  并建议在 Authentication 里关掉 “Allow new users to sign up”。 */
 export default function LoginScreen() {
-  const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -38,14 +37,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...`}
     e.preventDefault()
     setBusy(true); setErr(null); setMsg(null)
     try {
-      if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
-        if (!data.session) setMsg('注册成功，请到邮箱点确认链接后再登录。')
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
     } catch (e2) {
       setErr(e2 instanceof Error ? e2.message : String(e2))
     } finally {
@@ -74,16 +67,10 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...`}
       <div className="kicker">KAKEI · PRIVATE LEDGER</div>
       <h2 style={{ margin: '6px 0 2px', fontSize: 34 }}>家计记账</h2>
       <div className="muted" style={{ fontSize: 12, marginBottom: 20 }}>
-        自用版 · 数据存放在你自己的 Supabase 项目
+        自用版 · 仅限本人登录
       </div>
 
-      <PickerRow
-        options={[{ value: 'signin' as Mode, label: '登录' }, { value: 'signup' as Mode, label: '注册' }]}
-        value={mode}
-        onChange={(v) => { setMode(v); setErr(null); setMsg(null) }}
-      />
-
-      <div className="field" style={{ marginTop: 18 }}>
+      <div className="field">
         <label htmlFor="email">邮箱</label>
         <input
           id="email" className="input" type="email" autoComplete="email" required
@@ -94,7 +81,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...`}
         <label htmlFor="password">密码</label>
         <input
           id="password" className="input" type="password" required minLength={6}
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+          autoComplete="current-password"
           value={password} onChange={(e) => setPassword(e.target.value)} placeholder="至少 6 位"
         />
       </div>
@@ -116,18 +103,20 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...`}
         style={{ width: '100%', height: 44, marginTop: 18, fontSize: 16, letterSpacing: '.08em' }}
         disabled={busy}
       >
-        {busy ? '处理中…' : mode === 'signup' ? '注册并登录' : '登录'}
+        {busy ? '处理中…' : '登录'}
       </button>
 
-      {mode === 'signin' && (
-        <button
-          type="button" className="btn btn-ghost"
-          style={{ marginTop: 10, alignSelf: 'center', fontSize: 12 }}
-          onClick={resetPassword} disabled={busy}
-        >
-          忘记密码？发送重置邮件
-        </button>
-      )}
+      <button
+        type="button" className="btn btn-ghost"
+        style={{ marginTop: 10, alignSelf: 'center', fontSize: 12 }}
+        onClick={resetPassword} disabled={busy}
+      >
+        忘记密码？发送重置邮件
+      </button>
+
+      <div className="muted" style={{ marginTop: 18, fontSize: 10.5, lineHeight: 1.6 }}>
+        本站不开放注册。账号在 Supabase 控制台 Authentication → Users 里手动创建。
+      </div>
     </form>
   )
 }
