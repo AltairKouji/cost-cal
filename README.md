@@ -52,19 +52,36 @@ npm run dev
 > anon key 本来就是给浏览器用的公开 key，真正的安全边界是数据库上的 RLS 策略
 > 加上关掉的注册开关，所以放进前端没有问题。**service_role key 永远不要写进这个项目。**
 
-## 三、部署
+## 三、部署到 GitHub Pages
 
-任何静态托管都行（Vercel / Netlify / Cloudflare Pages / GitHub Pages）：
+仓库带了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，push 到 `main`
+就自动构建发布，站点地址是 `https://<用户名>.github.io/cost-cal/`。首次需要配三处：
 
-```bash
-npm run build   # 产物在 dist/
-```
+1. **Settings → Pages → Source** 选 **GitHub Actions**。
+2. **Settings → Secrets and variables → Actions → Variables** 里新建两个仓库变量
+   （用 Variables 而不是 Secrets：anon key 本来就是公开的，日志里看得见反而好排错）：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
-在托管平台的环境变量里配置 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
-如果用到重置密码邮件，记得把部署域名加进 Supabase 的
-**Authentication → URL Configuration → Redirect URLs**。
+   少配一个，工作流会直接失败并提示，不会发布出一个连不上后端的站点。
+3. **Supabase → Authentication → URL Configuration → Redirect URLs** 里加上
+   `https://<用户名>.github.io/cost-cal/`，重置密码邮件才能正确跳回来。
+
+站点是公开可访问的，唯一的门是「没账号进不来」，所以**务必确认第一步里的注册开关是关的**。
 
 手机上打开后「添加到主屏幕」，就是一个全屏的记账 App。
+
+### 部署到别的地方
+
+Vercel / Netlify / Cloudflare Pages 接上仓库即可，构建命令 `npm run build`，产物 `dist/`。
+它们发布在域名根路径，构建时要把 base 改回根：
+
+```bash
+BASE_PATH=/ npm run build
+```
+
+同样在平台的环境变量里配 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`，
+并把域名加进 Supabase 的 Redirect URLs。
 
 ## 目录结构
 
@@ -83,6 +100,7 @@ src/
     industry.css       设计系统 token 与组件类
     app.css            应用外壳、深色主题、键盘等
 supabase/schema.sql    建表 + RLS + 新账号初始化
+.github/workflows/     push 到 main 自动发布 GitHub Pages
 ```
 
 数据量按自用场景设计：登录后一次性拉全部流水（上限两万笔）放在内存里算统计，
