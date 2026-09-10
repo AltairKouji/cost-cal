@@ -1,0 +1,209 @@
+/* 家计记账 — 应用外壳样式。设计语言沿用 Industry 蓝图风格：
+   直角、发丝边框、四角十字标记、Barlow Condensed 数字。 */
+
+:root {
+  color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 钢青满版 · 深色主题 —— 与设计稿 steel 变体一致 */
+[data-theme='steel'] {
+  color-scheme: dark;
+  --color-bg: #1d2d3d;
+  --color-text: #eef2f6;
+  --color-surface: #25384b;
+  --color-divider: rgba(238, 242, 246, 0.22);
+  --color-accent: #94bce3;
+  --color-accent-100: #1d2d3d;
+  --color-accent-200: #2c455d;
+  --color-accent-300: #a9c4dc;
+  --color-accent-400: #8aa9c6;
+  --color-accent-500: #6f93b8;
+  --color-accent-600: #94bce3;
+  --color-accent-700: #bdd8f2;
+  --color-accent-800: #d6ebff;
+  --color-accent-900: #eef6ff;
+  --color-neutral-300: #5c6b78;
+  --color-neutral-400: #8f9ba6;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* ── 外壳 ───────────────────────────────────────────────────────── */
+.app {
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+}
+@media (max-width: 481px) { .app { border: 0; } }
+
+.app-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen { padding: calc(20px + var(--safe-top)) 16px 12px; }
+
+.kicker {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.section-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+.num { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+.muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.hairline { border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); }
+
+h2.screen-title { margin: 6px 0 0; font-size: 30px; }
+
+/* ── 分段/选择条 ─────────────────────────────────────────────────── */
+.picker-row { display: flex; gap: 1px; }
+.picker {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  cursor: pointer;
+  border: 1px solid var(--color-divider);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12.5px;
+}
+.picker.on { background: var(--color-accent); color: var(--color-bg); }
+
+.step-btn {
+  width: 30px; height: 28px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.step-btn:disabled { opacity: 0.35; }
+
+/* ── 底部标签栏 ─────────────────────────────────────────────────── */
+.tabbar {
+  display: flex;
+  gap: 2px;
+  padding: 8px 8px calc(10px + var(--safe-bottom));
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-bg);
+}
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 5px 0;
+  cursor: pointer;
+  background: none; border: 0; font: inherit;
+  color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.tab.on { color: var(--color-accent-700); }
+.tab-glyph {
+  width: 27px; height: 27px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid currentColor;
+  font-family: var(--font-heading);
+  font-size: 14px;
+}
+.tab.on .tab-glyph { background: var(--color-accent); color: var(--color-bg); }
+.tab-label { font-size: 9px; letter-spacing: 0.08em; }
+
+/* ── 明细行 ─────────────────────────────────────────────────────── */
+.entry {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+  background: none; font: inherit; color: inherit;
+  text-align: left; cursor: pointer;
+}
+.entry:active { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
+.glyph {
+  width: 27px; height: 27px; flex: none;
+  border: 1px solid var(--color-divider);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  color: var(--color-accent-700);
+}
+
+/* ── 键盘 ───────────────────────────────────────────────────────── */
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; }
+.key {
+  border: 1px solid var(--color-divider);
+  padding: 13px 0;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  background: transparent;
+  color: var(--color-text);
+  user-select: none;
+}
+.key:active { background: color-mix(in srgb, var(--color-text) 10%, transparent); }
+
+/* ── 进度条 ─────────────────────────────────────────────────────── */
+.bar { height: 8px; border: 1px solid var(--color-divider); display: flex; }
+.bar > i { display: block; height: 100%; }
+
+/* ── 登录 ───────────────────────────────────────────────────────── */
+.auth {
+  min-height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 32px 22px;
+  max-width: 420px; margin: 0 auto;
+}
+
+/* ── 提示条 ─────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: calc(86px + var(--safe-bottom));
+  transform: translateX(-50%);
+  max-width: 90vw;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  background: var(--color-accent-800);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  z-index: 50;
+}
+[data-theme='steel'] .toast { color: var(--color-accent-900); background: #2c455d; }
+
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+.sheet {
+  width: 100%; max-width: 480px;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-divider);
+  padding: 16px 16px calc(16px + var(--safe-bottom));
+}
+
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--color-divider);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
