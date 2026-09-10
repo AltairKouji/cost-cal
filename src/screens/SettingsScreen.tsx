@@ -3,7 +3,7 @@ import { useData } from '../lib/store'
 import { supabase } from '../lib/supabase'
 import { COLOR_TOKENS, cssColor, type Category, type Kind } from '../lib/types'
 import { hhmm } from '../lib/format'
-import { PickerRow, SectionLabel } from '../components/ui'
+import { PickerRow, SectionLabel, Sheet } from '../components/ui'
 
 const CURRENCIES = ['JPY ¥', 'CNY ¥', 'USD $', 'EUR €']
 
@@ -155,84 +155,82 @@ function CategorySheet({ category, onClose, onSave, onDelete }: {
   const [busy, setBusy] = useState(false)
 
   return (
-    <div className="sheet-backdrop" onClick={onClose} role="presentation">
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog">
-        <div className="kicker">{category ? 'EDIT CATEGORY' : 'NEW CATEGORY'}</div>
+    <Sheet onClose={onClose}>
+      <div className="kicker">{category ? 'EDIT CATEGORY' : 'NEW CATEGORY'}</div>
 
-        <PickerRow
-          style={{ marginTop: 12 }}
-          options={[
-            { value: 'expense' as Kind, label: '支出' },
-            { value: 'income' as Kind, label: '收入' },
-          ]}
-          value={kind} onChange={setKind}
-        />
+      <PickerRow
+        style={{ marginTop: 12 }}
+        options={[
+          { value: 'expense' as Kind, label: '支出' },
+          { value: 'income' as Kind, label: '收入' },
+        ]}
+        value={kind} onChange={setKind}
+      />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr', gap: 10, marginTop: 12 }}>
-          <div className="field">
-            <label htmlFor="c-glyph">字符</label>
-            <input id="c-glyph" className="input" maxLength={2} value={glyph}
-              onChange={(e) => setGlyph(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="c-short">简称</label>
-            <input id="c-short" className="input" value={short}
-              onChange={(e) => setShort(e.target.value)} placeholder="餐饮" />
-          </div>
-          <div className="field">
-            <label htmlFor="c-budget">月预算</label>
-            <input id="c-budget" className="input" type="number" inputMode="decimal"
-              value={budget} onChange={(e) => setBudget(e.target.value)} />
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr', gap: 10, marginTop: 12 }}>
+        <div className="field">
+          <label htmlFor="c-glyph">字符</label>
+          <input id="c-glyph" className="input" maxLength={2} value={glyph}
+            onChange={(e) => setGlyph(e.target.value)} />
         </div>
-
-        <div className="field" style={{ marginTop: 10 }}>
-          <label htmlFor="c-name">全称</label>
-          <input id="c-name" className="input" value={name}
-            onChange={(e) => setName(e.target.value)} placeholder="餐饮" />
+        <div className="field">
+          <label htmlFor="c-short">简称</label>
+          <input id="c-short" className="input" value={short}
+            onChange={(e) => setShort(e.target.value)} placeholder="餐饮" />
         </div>
-
-        <div className="field" style={{ marginTop: 10 }}>
-          <label>颜色</label>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {COLOR_TOKENS.map((t) => (
-              <button key={t} type="button" onClick={() => setColor(t)}
-                aria-label={t}
-                style={{
-                  width: 26, height: 26, cursor: 'pointer', background: cssColor(t),
-                  border: color === t
-                    ? '2px solid var(--color-text)'
-                    : '1px solid var(--color-divider)',
-                }} />
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-            onClick={onClose}>取消</button>
-          {onDelete && (
-            <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
-              disabled={busy}
-              onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>删除</button>
-          )}
-          <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
-            disabled={busy || !(name.trim() || short.trim())}
-            onClick={async () => {
-              setBusy(true)
-              try {
-                await onSave({
-                  name: name.trim() || short.trim(),
-                  short: short.trim() || name.trim(),
-                  glyph: glyph.trim() || '他',
-                  kind,
-                  budget: Number(budget || 0),
-                  color,
-                })
-              } finally { setBusy(false) }
-            }}>保存</button>
+        <div className="field">
+          <label htmlFor="c-budget">月预算</label>
+          <input id="c-budget" className="input" type="number" inputMode="decimal"
+            value={budget} onChange={(e) => setBudget(e.target.value)} />
         </div>
       </div>
-    </div>
+
+      <div className="field" style={{ marginTop: 10 }}>
+        <label htmlFor="c-name">全称</label>
+        <input id="c-name" className="input" value={name}
+          onChange={(e) => setName(e.target.value)} placeholder="餐饮" />
+      </div>
+
+      <div className="field" style={{ marginTop: 10 }}>
+        <label>颜色</label>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {COLOR_TOKENS.map((t) => (
+            <button key={t} type="button" onClick={() => setColor(t)}
+              aria-label={t}
+              style={{
+                width: 26, height: 26, cursor: 'pointer', background: cssColor(t),
+                border: color === t
+                  ? '2px solid var(--color-text)'
+                  : '1px solid var(--color-divider)',
+              }} />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+          onClick={onClose}>取消</button>
+        {onDelete && (
+          <button type="button" className="btn btn-secondary" style={{ flex: 1, height: 38 }}
+            disabled={busy}
+            onClick={async () => { setBusy(true); await onDelete(); setBusy(false) }}>删除</button>
+        )}
+        <button type="button" className="btn btn-primary" style={{ flex: 1, height: 38 }}
+          disabled={busy || !(name.trim() || short.trim())}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              await onSave({
+                name: name.trim() || short.trim(),
+                short: short.trim() || name.trim(),
+                glyph: glyph.trim() || '他',
+                kind,
+                budget: Number(budget || 0),
+                color,
+              })
+            } finally { setBusy(false) }
+          }}>保存</button>
+      </div>
+    </Sheet>
   )
 }

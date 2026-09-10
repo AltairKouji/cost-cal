@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 /** 蓝图框：四角十字标记 + 发丝边框，设计系统里的 .blueprint。 */
@@ -62,6 +63,52 @@ export function Empty({ children }: { children: ReactNode }) {
   return (
     <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12.5 }} className="muted">
       {children}
+    </div>
+  )
+}
+
+/** 底部弹出面板。
+ *
+ *  手机上 `position:fixed; inset:0` 铺的是布局视口，而浏览器底部工具栏和弹出的
+ *  软键盘只会缩小*视觉*视口——面板底部那排按钮就被盖住了。这里跟着
+ *  visualViewport 走，键盘一弹出面板立刻缩到剩余空间里；再配合内部滚动，
+ *  内容再长也够得着。 */
+export function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const root = document.documentElement
+    const sync = () => {
+      root.style.setProperty('--vv-height', `${vv.height}px`)
+      root.style.setProperty('--vv-offset', `${vv.offsetTop}px`)
+    }
+    sync()
+    vv.addEventListener('resize', sync)
+    vv.addEventListener('scroll', sync)
+    return () => {
+      vv.removeEventListener('resize', sync)
+      vv.removeEventListener('scroll', sync)
+      root.style.removeProperty('--vv-height')
+      root.style.removeProperty('--vv-offset')
+    }
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        {children}
+      </div>
     </div>
   )
 }

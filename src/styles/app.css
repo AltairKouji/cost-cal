@@ -188,12 +188,22 @@ h2.screen-title { margin: 6px 0 0; font-size: 30px; }
 [data-theme='steel'] .toast { color: var(--color-accent-900); background: #2c455d; }
 
 .sheet-backdrop {
-  position: fixed; inset: 0; z-index: 40;
+  position: fixed;
+  left: 0; right: 0;
+  top: var(--vv-offset, 0px);
+  height: 100vh;                     /* 老浏览器兜底 */
+  height: var(--vv-height, 100dvh);  /* 跟着可见区域走，避开工具栏与键盘 */
+  z-index: 100;
   display: flex; align-items: flex-end; justify-content: center;
+  overflow: hidden;
   background: color-mix(in srgb, #000 45%, transparent);
 }
 .sheet {
   width: 100%; max-width: 480px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--color-bg);
   border-top: 1px solid var(--color-divider);
   padding: 16px 16px calc(16px + var(--safe-bottom));
