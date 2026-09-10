@@ -20,7 +20,18 @@ Barlow Condensed 数字），数据存在你自己的 Supabase 项目里，登�
 2. 打开 **SQL Editor**，把仓库里的 [`supabase/schema.sql`](supabase/schema.sql) 整段粘进去执行。
    它会建好 `settings` / `categories` / `entries` / `accounts` 四张表，开启行级安全
    （每个账号只能读写自己的数据），并在注册时自动写入默认分类与账户。
-3. 打开 **Project Settings → API**，记下 `Project URL` 和 `anon public` key。
+3. 拿到 **Project URL** 和 **anon key**。Supabase 改过版面，这两项可能不在同一页，
+   下面几个入口哪个能点用哪个：
+   - 顶部绿色 **Connect** 按钮 → *App Frameworks*，直接给出现成的 `.env` 片段，最省事
+   - **Project Settings → Data API** → `Project URL`
+   - **Project Settings → API Keys** → key
+
+   实在找不到 URL 就看浏览器地址栏，`https://supabase.com/dashboard/project/<ref>`
+   里的 `<ref>` 就是项目 ref，URL 恒为 `https://<ref>.supabase.co`。
+
+   key 显示为 `sb_publishable_...`（新项目）或 `eyJ...` 开头的 anon JWT（老项目）都可以，
+   两者都填给 `VITE_SUPABASE_ANON_KEY`。**千万别拿成 `service_role` / `secret` key**，
+   那个绕过 RLS，不能出现在前端。
 4. **关掉公开注册**（重要）：**Authentication → Sign In / Providers → Email**，
    把 **Allow new users to sign up** 关掉。前端已经没有注册入口，但 anon key 本身是
    公开的，不关这个开关，任何拿到网址的人都能直接调注册接口建号。
