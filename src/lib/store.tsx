@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { Account, Category, Entry, Settings } from './types'
 import { makeMoney } from './format'
+import { describeError, isAuthError } from './errors'
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'user_id'>[] = [
   { name: '居住（房租/房贷）', short: '居住', glyph: '居', kind: 'expense', budget: 98000, color: 'accent-800', sort: 1 },
@@ -58,6 +59,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const loadedFor = useRef<string | null>(null)
+  const lastLoadAt = useRef(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -73,21 +75,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user.id ?? null
 
+  const fetchAll = useCallback(async (uid: string) => {
+    const [s, c, e, a] = await Promise.all([
+      supabase.from('settings').select('*').eq('user_id', uid).maybeSingle(),
+      supabase.from('categories').select('*').eq('user_id', uid).order('sort'),
+      supabase.from('entries').select('*').eq('user_id', uid)
+        .order('occurred_on', { ascending: false })
+        .order('occurred_at', { ascending: false })
+        .limit(20000),
+      supabase.from('accounts').select('*').eq('user_id', uid).order('sort'),
+    ])
+    const first = [s, c, e, a].find((r) => r.error)
+    if (first?.error) throw first.error
+    return { s, c, e, a }
+  }, [])
+
   const load = useCallback(async (uid: string) => {
     setLoading(true)
     setError(null)
     try {
-      const [s, c, e, a] = await Promise.all([
-        supabase.from('settings').select('*').eq('user_id', uid).maybeSingle(),
-        supabase.from('categories').select('*').eq('user_id', uid).order('sort'),
-        supabase.from('entries').select('*').eq('user_id', uid)
-          .order('occurred_on', { ascending: false })
-          .order('occurred_at', { ascending: false })
-          .limit(20000),
-        supabase.from('accounts').select('*').eq('user_id', uid).order('sort'),
-      ])
-      const first = [s, c, e, a].find((r) => r.error)
-      if (first?.error) throw first.error
+      let res: Awaited<ReturnType<typeof fetchAll>>
+      try {
+        res = await fetchAll(uid)
+      } catch (err) {
+        // 放置几天后回到前台，access token 往往已经过期。先换一张再重试一次，
+        // 换不到才认为是真的掉登录。
+        if (!isAuthError(err)) throw err
+        const { error: refreshErr } = await supabase.auth.refreshSession()
+        if (refreshErr) {
+          await supabase.auth.signOut()
+          throw new Error('登录已过期，请重新登录')
+        }
+        res = await fetchAll(uid)
+      }
+      const { s, c, e, a } = res
 
       let nextSettings = s.data as Settings | null
       let nextCategories = (c.data ?? []) as Category[]
@@ -112,12 +133,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setCategories(nextCategories.map((x) => ({ ...x, budget: num(x.budget) })))
       setEntries(((e.data ?? []) as Entry[]).map((x) => ({ ...x, amount: num(x.amount) })))
       setAccounts(((a.data ?? []) as Account[]).map((x) => ({ ...x, balance: num(x.balance) })))
+      lastLoadAt.current = Date.now()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(describeError(err))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fetchAll])
 
   useEffect(() => {
     if (!userId) {
@@ -134,12 +156,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (userId) await load(userId)
   }, [userId, load])
 
+  // 手机上 app 常年挂在后台。回到前台时如果数据已经放了一会儿，就重新拉一次：
+  // 既能顺带把别的设备上记的账同步过来，也能自动从上面那种过期失败里恢复。
+  useEffect(() => {
+    if (!userId) return
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastLoadAt.current < 30_000) return
+      void load(userId)
+    }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [userId, load])
+
   const guard = async <T,>(fn: (uid: string) => Promise<T>) => {
     if (!userId) throw new Error('未登录')
     try {
       return await fn(userId)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(describeError(err))
       throw err
     }
   }
