@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useData } from '../lib/store'
 import { PAY_METHODS, cssColor, type Entry, type Kind } from '../lib/types'
 import { hhmm, nowTime } from '../lib/format'
+import { applyKey, evaluate, formatExpr } from '../lib/calc'
 import { Blueprint, PickerRow } from '../components/ui'
 
 export default function EntryScreen({ entry, date, onClose }: {
@@ -12,8 +13,9 @@ export default function EntryScreen({ entry, date, onClose }: {
   const { categories, settings, money, addEntry, updateEntry, deleteEntry } = useData()
   const decimals = (settings?.currency ?? 'JPY ¥') !== 'JPY ¥'
 
+  const fraction = decimals ? 2 : 0
   const [kind, setKind] = useState<Kind>(entry?.kind ?? 'expense')
-  const [amount, setAmount] = useState(() => {
+  const [expr, setExpr] = useState(() => {
     if (!entry) return ''
     return decimals ? String(entry.amount) : String(Math.round(entry.amount))
   })
@@ -28,30 +30,34 @@ export default function EntryScreen({ entry, date, onClose }: {
   const [catId, setCatId] = useState<string | null>(entry?.category_id ?? null)
   const activeCat = pool.find((c) => c.id === catId) ?? null
 
-  const keys = decimals
-    ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
-    : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '⌫']
+  // 每行三个数字键 + 右侧一个运算键
+  const digitRows = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    decimals ? ['00', '0', '.'] : ['000', '00', '0'],
+  ]
+  const opKeys = ['⌫', '+', '−', '=']
 
   const tap = (k: string) => {
-    if (k === '⌫') return setAmount((a) => a.slice(0, -1))
-    if (k === '.') {
-      if (amount.includes('.')) return
-      return setAmount((a) => (a === '' ? '0.' : a + '.'))
+    if (k === '=') {
+      const v = evaluate(expr, fraction)
+      if (v === null || v < 0) return
+      return setExpr(String(v))
     }
-    setAmount((a) => {
-      if (a.replace('.', '').length >= 10) return a
-      if (a === '' && (k === '0' || k === '00')) return a
-      const next = a + k
-      const dot = next.indexOf('.')
-      if (dot >= 0 && next.length - dot > 3) return a
-      return next
-    })
+    setExpr((e) => applyKey(e, k, fraction))
   }
 
-  const value = Number(amount || '0')
+  const value = evaluate(expr, fraction) ?? 0
+  const hasOp = /[+\-]/.test(expr)
+  const shown = formatExpr(expr)
+  const exprFontSize = shown.length <= 10 ? 44
+    : shown.length <= 14 ? 35
+    : shown.length <= 19 ? 27
+    : shown.length <= 25 ? 20 : 16
 
   const save = async () => {
-    if (!value) return
+    if (value <= 0) return
     setBusy(true)
     try {
       const payload = {
@@ -103,32 +109,38 @@ export default function EntryScreen({ entry, date, onClose }: {
           onChange={(k) => { setKind(k); setCatId(null) }}
         />
 
-        <Blueprint style={{
-          marginTop: 18, padding: 14,
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10,
-        }}>
-          <div style={{ minWidth: 0 }}>
-            <div className="muted" style={{ fontSize: 9.5, letterSpacing: '.12em' }}>
-              金额 / {settings?.currency ?? 'JPY ¥'}
-            </div>
-            <div className="num" style={{
-              fontSize: 44, lineHeight: 1, letterSpacing: '-.01em',
-              overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>
-              {amount === '' ? '0' : amount}
-            </div>
+        <Blueprint style={{ marginTop: 18, padding: 14 }}>
+          <div className="muted" style={{ fontSize: 9.5, letterSpacing: '.12em' }}>
+            金额 / {settings?.currency ?? 'JPY ¥'}
           </div>
-          <div style={{ textAlign: 'right', flex: 'none' }}>
-            <div className="muted" style={{ fontSize: 10.5 }}>{activeCat?.name ?? '未选分类'}</div>
+          <div className="num" style={{
+            fontSize: exprFontSize, lineHeight: 1.05, letterSpacing: '-.01em',
+            overflowWrap: 'anywhere',
+          }}>
+            {shown}
+          </div>
+          {hasOp && (
+            <div className="num" style={{
+              fontSize: 15, marginTop: 2,
+              color: value < 0 ? 'var(--color-accent-900)' : 'var(--color-accent-700)',
+            }}>
+              = {money(value)}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+            <span className="muted" style={{
+              flex: 1, minWidth: 0, fontSize: 10.5,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {activeCat?.name ?? '未选分类'}
+            </span>
             <input
               className="input" type="date" value={on} onChange={(e) => setOn(e.target.value)}
-              style={{ display: 'block', marginTop: 4, width: 132, fontSize: 12, minHeight: 30 }}
-              aria-label="日期"
+              style={{ width: 116, fontSize: 12, minHeight: 30 }} aria-label="日期"
             />
             <input
               className="input" type="time" value={at} onChange={(e) => setAt(e.target.value)}
-              style={{ display: 'block', marginTop: 4, width: 132, fontSize: 12, minHeight: 30 }}
-              aria-label="时间"
+              style={{ width: 106, fontSize: 12, minHeight: 30 }} aria-label="时间"
             />
           </div>
         </Blueprint>
@@ -173,8 +185,20 @@ export default function EntryScreen({ entry, date, onClose }: {
       </div>
 
       <div className="keypad" style={{ padding: '14px 16px 0' }}>
-        {keys.map((k) => (
-          <button key={k} type="button" className="key" onClick={() => tap(k)}>{k}</button>
+        {digitRows.map((row, i) => (
+          <Fragment key={i}>
+            {row.map((k) => (
+              <button key={k} type="button" className="key" onClick={() => tap(k)}>{k}</button>
+            ))}
+            <button
+              type="button"
+              className={`key key-op${opKeys[i] === '=' ? ' key-eq' : ''}`}
+              onClick={() => tap(opKeys[i])}
+              aria-label={{ '⌫': '退格', '+': '加', '−': '减', '=': '等于' }[opKeys[i]]}
+            >
+              {opKeys[i]}
+            </button>
+          </Fragment>
         ))}
       </div>
 
@@ -182,13 +206,13 @@ export default function EntryScreen({ entry, date, onClose }: {
         <button
           type="button" className="btn btn-primary"
           style={{ flex: 1, height: 44, fontSize: 16, letterSpacing: '.06em' }}
-          onClick={save} disabled={busy || !value}
+          onClick={save} disabled={busy || value <= 0}
         >
           {busy ? '保存中…' : '保存'}
         </button>
         <button
           type="button" className="btn btn-secondary" style={{ width: 70, height: 44 }}
-          onClick={() => setAmount('')}
+          onClick={() => setExpr('')}
         >
           清空
         </button>
