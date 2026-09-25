@@ -54,11 +54,15 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
   }, [entries])
 
   const dayEntries = useMemo(() => onDay(entries, date), [entries, date])
-  const dayTotal = dayEntries.reduce(
-    (a, e) => a + (e.kind === 'income' ? -e.amount : e.amount), 0)
+  // 支出与收入分开统计：这个位置读作「今天花了多少」，
+  // 把工资减进去会让发薪日变成一个巨大的负数。
+  const daySpend = dayEntries.reduce(
+    (a, e) => (e.kind === 'expense' ? a + e.amount : a), 0)
+  const dayIncome = dayEntries.reduce(
+    (a, e) => (e.kind === 'income' ? a + e.amount : a), 0)
 
   const pastDays = useMemo(() => {
-    const out: { iso: string; note: string; amount: number }[] = []
+    const out: { iso: string; note: string; spend: number; income: number }[] = []
     const from = parseISODate(date)
     for (let i = 1; i <= 30 && out.length < 3; i++) {
       const prev = new Date(from.getFullYear(), from.getMonth(), from.getDate() - i)
@@ -70,7 +74,8 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
       out.push({
         iso,
         note: `${names.slice(0, 3).join(' · ')}（${list.length} 笔）`,
-        amount: list.reduce((a, e) => a + (e.kind === 'income' ? -e.amount : e.amount), 0),
+        spend: list.reduce((a, e) => (e.kind === 'expense' ? a + e.amount : a), 0),
+        income: list.reduce((a, e) => (e.kind === 'income' ? a + e.amount : a), 0),
       })
     }
     return out
@@ -175,7 +180,14 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
           {month}月{d.getDate()}日{' '}
           <span style={{ fontSize: 12, opacity: 0.6 }}>（{WEEK_CN[d.getDay()]}）</span>
         </div>
-        <div className="num" style={{ fontSize: 17 }}>{money(dayTotal)}</div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="num" style={{ fontSize: 17 }}>{money(daySpend)}</div>
+          {dayIncome > 0 && (
+            <div className="num" style={{ fontSize: 11.5, color: 'var(--color-accent-700)' }}>
+              收入 +{money(dayIncome)}
+            </div>
+          )}
+        </div>
       </div>
 
       {dayEntries.length === 0 ? (
@@ -223,7 +235,18 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
                 {p.iso.slice(5).replace('-', '/')}
               </span>
               <span className="muted" style={{ flex: 1, fontSize: 11 }}>{p.note}</span>
-              <span className="num" style={{ fontSize: 15 }}>{money(p.amount)}</span>
+              <span style={{ textAlign: 'right', flex: 'none' }}>
+                <span className="num" style={{ display: 'block', fontSize: 15 }}>
+                  {money(p.spend)}
+                </span>
+                {p.income > 0 && (
+                  <span className="num" style={{
+                    display: 'block', fontSize: 10.5, color: 'var(--color-accent-700)',
+                  }}>
+                    +{money(p.income)}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </>
