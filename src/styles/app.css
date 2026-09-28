@@ -93,6 +93,13 @@ h2.screen-title { margin: 6px 0 0; font-size: 30px; }
 }
 .picker.on { background: var(--color-accent); color: var(--color-bg); }
 
+.week-step {
+  width: 22px;
+  flex: none;
+  padding: 0;
+  font-size: 15px;
+}
+
 .step-btn {
   width: 30px; height: 28px; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;

@@ -17,7 +17,7 @@ export default function YearScreen({ year, setYear }: {
   year: number
   setYear: (y: number) => void
 }) {
-  const { entries, categories, money } = useData()
+  const { entries, categories, settings, money } = useData()
   const [picked, setPicked] = useState(new Date().getMonth() + 1)
 
   const list = useMemo(() => inYear(entries, year), [entries, year])
@@ -32,8 +32,19 @@ export default function YearScreen({ year, setYear }: {
     return best
   }, [daily])
 
+  // 分档用固定金额，不跟当年最大值挂钩：否则一笔房贷这样的大额支出会把
+  // 标尺整个拉长，其余几千块的日子全挤进最浅一档。基准取日预算（月预算 ÷ 30），
+  // 换币种也成立；没设预算时退回按当年有支出那些天的中位数推。
+  const steps = useMemo(() => {
+    const perDay = (settings?.monthly_budget ?? 0) / 30
+    if (perDay > 0) return [perDay * 0.25, perDay * 0.5, perDay]
+    const vals = [...daily.values()].filter((v) => v > 0).sort((a, b) => a - b)
+    if (vals.length === 0) return [1, 2, 3]
+    const median = vals[Math.floor(vals.length / 2)]
+    return [median * 0.5, median, median * 2]
+  }, [settings?.monthly_budget, daily])
+
   const heat = useMemo(() => {
-    const max = peak?.v ?? 0
     const cells: { iso: string; v: number; c: string }[] = []
     const start = new Date(year, 0, 1)
     const end = new Date(year, 11, 31)
@@ -46,15 +57,14 @@ export default function YearScreen({ year, setYear }: {
       const v = d.getFullYear() === year ? (daily.get(iso) ?? 0) : -1
       const level = v < 0 ? -1
         : v === 0 ? 0
-        : max <= 0 ? 1
-        : v < max * 0.15 ? 1 : v < max * 0.35 ? 2 : v < max * 0.65 ? 3 : 4
+        : v < steps[0] ? 1 : v < steps[1] ? 2 : v < steps[2] ? 3 : 4
       cells.push({
         iso, v,
         c: level < 0 ? 'transparent' : HEAT[level],
       })
     }
     return cells
-  }, [daily, year, peak])
+  }, [daily, year, steps])
 
   const catRows = useMemo(() => byCategory(list, categories), [list, categories])
   const catMax = Math.max(1, ...catRows.map((r) => r.amount))
@@ -146,14 +156,19 @@ export default function YearScreen({ year, setYear }: {
       </div>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginTop: 8,
-        fontSize: 9.5, opacity: 0.6,
+        fontSize: 9.5, opacity: 0.6, flexWrap: 'wrap',
       }}>
-        <span>少</span>
         {HEAT.slice(1).map((c, i) => (
-          <div key={i} style={{ width: 9, height: 9, background: c }} />
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ width: 9, height: 9, background: c, display: 'block' }} />
+            {i < steps.length
+              ? `<${money(Math.round(steps[i]))}`
+              : `≥${money(Math.round(steps[steps.length - 1]))}`}
+          </span>
         ))}
-        <span>多</span>
-        <span style={{ marginLeft: 'auto' }}>
+      </div>
+      <div style={{ marginTop: 4, fontSize: 9.5, opacity: 0.6 }}>
+        <span>
           {peak ? `单日最高 ${money(peak.v)}（${peak.iso.slice(5).replace('-', '月')}日）` : '暂无数据'}
         </span>
       </div>
@@ -213,7 +228,9 @@ function Cell({ label, value, border, accent }: {
         {label}
       </div>
       <div className="num" style={{
-        fontSize: 18, color: accent ? 'var(--color-accent-700)' : undefined,
+        fontSize: value.length > 11 ? 13 : value.length > 9 ? 15 : 18,
+        whiteSpace: 'nowrap',
+        color: accent ? 'var(--color-accent-700)' : undefined,
       }}>
         {value}
       </div>

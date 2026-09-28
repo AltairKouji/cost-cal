@@ -17,6 +17,11 @@ function weekOf(iso: string) {
     toISODate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)))
 }
 
+const shiftDays = (iso: string, delta: number) => {
+  const d = parseISODate(iso)
+  return toISODate(new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta))
+}
+
 const shiftMonth = (iso: string, delta: number) => {
   const d = parseISODate(iso)
   const y = d.getFullYear()
@@ -134,7 +139,15 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 1, padding: '0 16px 14px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'stretch', gap: 1, padding: '0 16px 14px',
+      }}>
+        <button
+          type="button" className="btn btn-secondary week-step"
+          onClick={() => setDate(shiftDays(date, -7))} aria-label="上一周"
+        >
+          ‹
+        </button>
         {week.map((iso) => {
           const wd = parseISODate(iso)
           const on = iso === date
@@ -167,6 +180,12 @@ export default function DayScreen({ date, setDate, onAdd, onEdit }: {
             </button>
           )
         })}
+        <button
+          type="button" className="btn btn-secondary week-step"
+          onClick={() => setDate(shiftDays(date, 7))} aria-label="下一周"
+        >
+          ›
+        </button>
       </div>
 
       <div style={{
